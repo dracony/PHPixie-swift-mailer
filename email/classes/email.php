@@ -6,8 +6,9 @@
  *
  * https://github.com/dracony/PHPixie-swift-mailer
  * 
- * Before using this class download Swift Mailer from http://swiftmailer.org/
- * and put contents of its /lib folder inside /modules/email/vendor/swift folder.
+ * To enable it add 'email' to modules array in /application/config/core.php,
+ * then download Swift Mailer from http://swiftmailer.org/ and put contents
+ * of its /lib folder inside /modules/email/vendor/swift folder.
  * 
  * @link https://github.com/dracony/PHPixie-swift-mailer Download this module from Github
  * @package    Email
@@ -90,7 +91,7 @@ class Email {
 	}
 
 	/**
-	 * Send an email message.
+	 * Sends an email message.
 	 * <code>
 	 * //$to and $from parameters can be one of these
 	 * 'user@server.com'
