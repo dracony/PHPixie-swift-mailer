@@ -11,6 +11,7 @@ return array(
 		'username'    => null,
 		'password'    => null,
 		'encryption'  => null, // 'ssl' and 'tls' are supported
+		'timeout'  => null, // timeout in seconds, defaults to 5
 		
 		//Sendmail command (for sendmail), defaults to "/usr/sbin/sendmail -bs"
 		'sendmail_command' => null,
