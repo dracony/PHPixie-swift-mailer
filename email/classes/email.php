@@ -92,6 +92,7 @@ class Email {
 
 	/**
 	 * Sends an email message.
+	 *
 	 * <code>
 	 * //$to and $from parameters can be one of these
 	 * 'user@server.com'
