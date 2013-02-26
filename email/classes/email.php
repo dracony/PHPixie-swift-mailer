@@ -39,7 +39,7 @@ class Email {
 	protected function __construct($config = 'default')	{
 	
 		//Load SwiftMailer classes
-		if ( !class_exists('Swift_Mailer', false))
+		if ( !class_exists('Swift_Mailer'))
 			include Misc::find_file('vendor', 'swift/swift_required');
 		
 		$type = Config::get("email.{$config}.type",'native');
