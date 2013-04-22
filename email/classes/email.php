@@ -1,95 +1,71 @@
 <?php
+
+namespace PHPixie;
+
 /**
- * Swift Mailer plugin for PHPixie. 
+ * Email Module for PHPixie
  *
- * This module is not included by default, download it here:
- *
+ * This module is not included by default, install it using Composer
+ * by adding
+ * <code>
+ * 		"phpixie/email": "2.*@dev"
+ * </code>
+ * to your requirement definition. Or download it from
  * https://github.com/dracony/PHPixie-swift-mailer
  * 
- * To enable it add 'email' to modules array in /application/config/core.php,
- * then download Swift Mailer from http://swiftmailer.org/ and put contents
- * of its /lib folder inside /modules/email/vendor/swift folder.
- * 
- * @link https://github.com/dracony/PHPixie-swift-mailer Download this module from Github
- * @package    Email
+ * To enable it add it to your Pixie class' modules array:
+ * <code>
+ * 		protected $modules = array(
+ * 			//Other modules ...
+ * 			'email' => '\PHPixie\Email',
+ * 		);
+ * </code>
+ *
+ * For information on configuring your email transport check out
+ * /assets/config/cache.php config file inside this module.
+ *
+ * @link https://github.com/dracony/PHPixie-Cache Download this module from Github
+ * @package    Cache
  */
 class Email {
 
 	/**
-	 * Initialized Swift_Mailer instance
-	 * @var    Swift_Mailer
-	 * @access public
-	 * @see    http://swiftmailer.org/docs/sending.html
+	 * Pixie Dependancy Container
+	 * @var \PHPixie\Pixie
 	 */
-	public $mailer;
+	public $pixie;
 	
 	/**
-	 * An array of created Email instances, one for each driver
+	 * An array of Swift_Mailer instances, one for each driver
 	 * @var    array
 	 * @access protected
 	 */
-	protected static $pool;
+	protected $_instances;
 
 	/**
-	 * Creates an Email instance for specified driver.
-	 *
-	 * @param   string  $config  Configuration name of the connection. Defaults to 'default'.
-	 * @return  Email   Initialized Email object
+	 * Initializes the Email module
+	 * 
+	 * @param \PHPixie\Pixie $pixie Pixie dependency container
 	 */
-	protected function __construct($config = 'default')	{
-	
-		//Load SwiftMailer classes
-		if ( !class_exists('Swift_Mailer'))
-			include Misc::find_file('vendor', 'swift/swift_required');
-		
-		$type = Config::get("email.{$config}.type",'native');
-		switch ($type) {
-			case 'smtp':
-				
-				// Create SMTP Transport
-				$transport = Swift_SmtpTransport::newInstance(
-					Config::get("email.{$config}.hostname"),
-					Config::get("email.{$config}.port",25)
-				);
-				
-				// Set encryption if specified
-				if ( ($encryption = Config::get("email.{$config}.encryption",false)) !== false)
-					$transport->setEncryption($encryption);
-				
-				// Set username if specified
-				if ( ($username = Config::get("email.{$config}.username",false)) !== false)
-					$transport->setUsername($username);
-					
-				// Set password if specified
-				if ( ($password = Config::get("email.{$config}.password",false)) !== false)
-					$transport->setPassword($password);
-					
-				// Set timeout, defaults to 5 seconds
-				$transport->setTimeout(Config::get("email.{$config}.timeout", 5));
-				
-			break;
-			
-			case 'sendmail':
-				
-				// Create a sendmail connection, defalts to "/usr/sbin/sendmail -bs"
-				$transport = Swift_SendmailTransport::newInstance(Config::get("email.{$config}.sendmail_command", "/usr/sbin/sendmail -bs"));
-				
-			break;
-			
-			case 'native':
-				
-				// Use the native connection and specify additional params, defaults to "-f%s"
-				$transport = Swift_MailTransport::newInstance(Config::get("email.{$config}.mail_parameters","-f%s"));
-				
-			break;
-			
-			default:
-				throw new Exception("Connection can be one of the following: smtp, sendmail or native. You specified '{$type}' as type");
-		}
-
-		$this->mailer = Swift_Mailer::newInstance($transport);
+	public function __construct($pixie)	{
+		$this->pixie = $pixie;
 	}
 
+	/**
+	 * Gets a Swift_Mailer instance for the specified driver.
+	 *
+	 * @param   string $config Configuration name of the connection. Defaults to 'default'.
+	 * @return  Swift_Mailer  Initialized mailer
+	 */
+	public function mailer($config) {
+	
+		//Create instance of the connection if it wasn't created yet
+		if (!isset($this->_instances[$config]))
+			$this->instances[$config] = $this->build_mailer();
+			
+		return $this->instances[$config];
+	}
+	
 	/**
 	 * Sends an email message.
 	 *
@@ -129,7 +105,7 @@ class Email {
 	 * @param   string 		 $config    Configuration name of the connection. Defaults to 'default'.
 	 * @return  integer      Number of emails sent
 	 */
-	public function send_email($to, $from, $subject, $message, $html = false) {
+	public function send($to, $from, $subject, $message, $html = false, $config = 'default') {
 		
 		// Create the message
 		$message = Swift_Message::newInstance($subject, $message, $html?'text/html':'text/plain', 'utf-8');
@@ -173,38 +149,56 @@ class Email {
 		else
 			$message->setFrom($from);
 
-		return $this->mailer->send($message);
+		return $this->mailer($config)->send($message);
 	}
 	
-	/**
-	 * Gets an Email instance for the specified driver.
-	 *
-	 * @param   string $config Configuration name of the connection. Defaults to 'default'.
-	 * @return  Email  Initialized Email object
-	 */
-	public static function instance($config) {
-	
-		//Create instance of the connection if it wasn't created yet
-		if (!isset(Email::$pool[$config]))
-			Email::$pool[$config]=new Email($config);
+	protected function build_mailer($config) {
+		$type = $this->pixie->config->get("email.{$config}.type",'native');
+		switch ($type) {
+			case 'smtp':
+				
+				// Create SMTP Transport
+				$transport = Swift_SmtpTransport::newInstance(
+					$this->pixie->config->get("email.{$config}.hostname"),
+					$this->pixie->config->get("email.{$config}.port",25)
+				);
+				
+				// Set encryption if specified
+				if ( ($encryption = $this->pixie->config->get("email.{$config}.encryption",false)) !== false)
+					$transport->setEncryption($encryption);
+				
+				// Set username if specified
+				if ( ($username = $this->pixie->config->get("email.{$config}.username",false)) !== false)
+					$transport->setUsername($username);
+					
+				// Set password if specified
+				if ( ($password = $this->pixie->config->get("email.{$config}.password",false)) !== false)
+					$transport->setPassword($password);
+					
+				// Set timeout, defaults to 5 seconds
+				$transport->setTimeout($this->pixie->config->get("email.{$config}.timeout", 5));
+				
+			break;
 			
-		return Email::$pool[$config];
-	}
-	
-	/**
-	 * Shortcut function for sending an email message.
-	 *
-	 * @param   string|array $to        Recipient email (and name), or an array of To, Cc, Bcc names
-	 * @param   string|array $from      Sender email (and name)
-	 * @param   string       $subject   Message subject
-	 * @param   string       $message   Message body
-	 * @param   boolean      $html      Send email as HTML
-	 * @param   string 		 $config    Configuration name of the connection. Defaults to 'default'.
-	 * @return  integer      Number of emails sent
-	 * @see Email::send_email()
-	 */
-	public static function send($to, $from, $subject, $message, $html = false, $config = 'default') {
-		return Email::instance($config)->send_email($to,$from,$subject,$message,$html);
+			case 'sendmail':
+				
+				// Create a sendmail connection, defalts to "/usr/sbin/sendmail -bs"
+				$transport = Swift_SendmailTransport::newInstance($this->pixie->config->get("email.{$config}.sendmail_command", "/usr/sbin/sendmail -bs"));
+				
+			break;
+			
+			case 'native':
+				
+				// Use the native connection and specify additional params, defaults to "-f%s"
+				$transport = Swift_MailTransport::newInstance($this->pixie->config->get("email.{$config}.mail_parameters","-f%s"));
+				
+			break;
+			
+			default:
+				throw new Exception("Connection can be one of the following: smtp, sendmail or native. You specified '{$type}' as type");
+		}
+
+		return Swift_Mailer::newInstance($transport);
 	}
 
 }
