@@ -55,7 +55,7 @@ class Email {
 	 * Gets a Swift_Mailer instance for the specified driver.
 	 *
 	 * @param   string $config Configuration name of the connection. Defaults to 'default'.
-	 * @return  Swift_Mailer  Initialized mailer
+	 * @return  \Swift_Mailer  Initialized mailer
 	 */
 	public function mailer($config) {
 	
@@ -108,7 +108,7 @@ class Email {
 	public function send($to, $from, $subject, $message, $html = false, $config = 'default') {
 		
 		// Create the message
-		$message = Swift_Message::newInstance($subject, $message, $html?'text/html':'text/plain', 'utf-8');
+		$message = \Swift_Message::newInstance($subject, $message, $html?'text/html':'text/plain', 'utf-8');
 		
 		//Normalize the input array
 		if (is_string($to)) {
@@ -158,7 +158,7 @@ class Email {
 			case 'smtp':
 				
 				// Create SMTP Transport
-				$transport = Swift_SmtpTransport::newInstance(
+				$transport = \Swift_SmtpTransport::newInstance(
 					$this->pixie->config->get("email.{$config}.hostname"),
 					$this->pixie->config->get("email.{$config}.port",25)
 				);
@@ -183,14 +183,14 @@ class Email {
 			case 'sendmail':
 				
 				// Create a sendmail connection, defalts to "/usr/sbin/sendmail -bs"
-				$transport = Swift_SendmailTransport::newInstance($this->pixie->config->get("email.{$config}.sendmail_command", "/usr/sbin/sendmail -bs"));
+				$transport = \Swift_SendmailTransport::newInstance($this->pixie->config->get("email.{$config}.sendmail_command", "/usr/sbin/sendmail -bs"));
 				
 			break;
 			
 			case 'native':
 				
 				// Use the native connection and specify additional params, defaults to "-f%s"
-				$transport = Swift_MailTransport::newInstance($this->pixie->config->get("email.{$config}.mail_parameters","-f%s"));
+				$transport = \Swift_MailTransport::newInstance($this->pixie->config->get("email.{$config}.mail_parameters","-f%s"));
 				
 			break;
 			
@@ -198,7 +198,7 @@ class Email {
 				throw new Exception("Connection can be one of the following: smtp, sendmail or native. You specified '{$type}' as type");
 		}
 
-		return Swift_Mailer::newInstance($transport);
+		return \Swift_Mailer::newInstance($transport);
 	}
 
 }
