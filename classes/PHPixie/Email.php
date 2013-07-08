@@ -61,7 +61,7 @@ class Email {
 	
 		//Create instance of the connection if it wasn't created yet
 		if (!isset($this->_instances[$config]))
-			$this->instances[$config] = $this->build_mailer();
+			$this->instances[$config] = $this->build_mailer($config);
 			
 		return $this->instances[$config];
 	}
@@ -136,7 +136,6 @@ class Email {
 			// Get method name
 			$method = 'add'.ucfirst($type);
 			foreach($set as $recepient) {
-				Debug::log($recepient);
 				if(is_array($recepient))
 					$message->$method(key($recepient),current($recepient));
 				else
