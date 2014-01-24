@@ -142,7 +142,10 @@ class Email {
 					$message->$method($recepient);
 			}
 		}
-
+		if($from === null) {
+			$from = $this->pixie->config->get("email.{$config}.sender");
+		}
+		
 		if(is_array($from))
 			$message->setFrom(key($from),current($from));
 		else
